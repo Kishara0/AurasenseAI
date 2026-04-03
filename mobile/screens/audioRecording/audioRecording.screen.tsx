@@ -376,7 +376,7 @@ const AudioRecordingScreen = () => {
               ))}
             </View>
           </View>
-          <Pressable onPress={()=>router.push("/(routes)/diagnosticQuestion")}>
+          <Pressable onPress={()=>router.push("/(routes)/visualEvidence")}>
           <Text
             style={{
               textAlign: "center",

@@ -26,6 +26,7 @@ const DiagnosticReportScreen = () => {
       style={{
         flex: 1,
       }}
+      edges={["left", "right", "bottom"]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -38,7 +39,7 @@ const DiagnosticReportScreen = () => {
           contentContainerStyle={{
             paddingHorizontal: moderateScale(20),
             gap: moderateScale(20),
-            paddingBottom: moderateScale(40),
+            paddingVertical: moderateScale(20),
           }}
           showsVerticalScrollIndicator={false}
         >
