@@ -3,6 +3,7 @@
 # dependencies
 mobile/node_modules/
 
+mobile/.vscode
 # Expo
 mobile/.expo/
 mobile/dist/
