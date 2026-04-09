@@ -12,33 +12,48 @@ import {
   Platform,
   TouchableOpacity,
   Image,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
+import { useDiagnosisStore } from "@/store/diagnosisStore";
+import { router } from "expo-router";
 
 const ChatScreen = () => {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { history, isAnalyzing, submitDiagnosis } = useDiagnosisStore();
   const [input, setInput] = useState<string>("");
   const flatListRef = useRef<FlatList<Message>>(null);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim() || isAnalyzing) return;
 
-    const newMessage: UserMessage = {
-      id: Date.now().toString(),
-      type: "user",
-      text: input,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    // We can just set the history manually temporarily before submitting
+    const userMessage = { role: 'user', content: input };
+    useDiagnosisStore.setState(state => ({ history: [...state.history, userMessage] }));
     setInput("");
 
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
+
+    const data = await submitDiagnosis();
+    if (data?.status === 'complete') {
+        router.push("/(routes)/diagnosticReport");
+    } else {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    }
   };
 
-  const renderItem = ({ item }: { item: Message }) => {
+  // Convert history array to local format
+  const mappedMessages: Message[] = history.map((msg: any, i: number) => ({
+      id: i.toString(),
+      type: (msg.role === 'mechanic' ? 'ai' : 'user') as "ai" | "user",
+      text: msg.content
+  }));
+
+  const renderItem = ({ item }: { item: any }) => {
     if (item.type === "time") {
       return <Text style={styles.time}>{item.text}</Text>;
     }
@@ -109,7 +124,7 @@ const ChatScreen = () => {
         <View style={{ flex: 1 }}>
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={mappedMessages}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
@@ -120,6 +135,7 @@ const ChatScreen = () => {
           />
 
           <View style={styles.inputBar}>
+            {isAnalyzing && <ActivityIndicator size="small" color={COLORS.primary} style={{marginRight: 10}} />}
             <TextInput
               value={input}
               onChangeText={setInput}

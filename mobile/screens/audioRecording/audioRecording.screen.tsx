@@ -21,6 +21,7 @@ import BackButton from "@/components/common/BackButton";
 import { COLORS } from "@/constants/Colors";
 import CustomButton from "@/components/common/CustomButton";
 import { router } from "expo-router";
+import { useDiagnosisStore } from "@/store/diagnosisStore";
 
 
 const instructions = [
@@ -33,6 +34,7 @@ const AudioRecordingScreen = () => {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const setAudio = useDiagnosisStore(state => state.setAudio);
 
   const [savedUri, setSavedUri] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -388,7 +390,10 @@ const AudioRecordingScreen = () => {
             Skip this step
           </Text>
           </Pressable>
-          <CustomButton title="Continue" onPress={()=>router.push("/(routes)/diagnosticQuestion")}/>
+          <CustomButton title="Continue" onPress={()=>{
+             if (savedUri) setAudio(savedUri);
+             router.push("/(routes)/diagnosticQuestion")
+          }}/>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

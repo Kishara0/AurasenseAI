@@ -18,9 +18,20 @@ import ProgressCircle from "@/components/common/ProgressCircle";
 import AnalysisProgress from "@/components/common/AnalysisProgress";
 import CustomButton from "@/components/common/CustomButton";
 import { router } from "expo-router";
+import { useDiagnosisStore } from "@/store/diagnosisStore";
 
 const DiagnosticReportScreen = () => {
+  const { finalDiagnosis } = useDiagnosisStore();
   const status = StatusConfig["moderate"];
+
+  if (!finalDiagnosis) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ fontSize: fontSizes.FONT20 }}>Awaiting diagnosis data...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={{
@@ -102,7 +113,7 @@ const DiagnosticReportScreen = () => {
                 fontWeight: "600",
               }}
             >
-              Worn Engine Belt
+              {finalDiagnosis.primary_diagnosis}
             </Text>
             <View style={{
               flexDirection:"row",
@@ -126,7 +137,7 @@ const DiagnosticReportScreen = () => {
             </View>
           </View>
 
-          <ProgressCircle percentage={94} />
+          <ProgressCircle percentage={finalDiagnosis.confidence} />
           <View
             style={{
               backgroundColor: COLORS.white,
@@ -199,19 +210,14 @@ const DiagnosticReportScreen = () => {
                 marginBottom: moderateScale(10),
               }}
             >
-              Analysis Details
+              Recommended Actions
             </Text>
-            <AnalysisProgress
-              title="Audio Analysis"
-              percentage={88}
-              icon="volume-high"
-            />
-
-            <AnalysisProgress
-              title="Visual Inspection"
-              percentage={96}
-              icon="eye"
-            />
+            {finalDiagnosis.actions.map((action, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+                <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
+                <Text style={{ fontSize: 16, flex: 1, color: COLORS.textSecondary }}>{action}</Text>
+              </View>
+            ))}
           </View>
 
           <CustomButton title="Find Nearby Mechanics" />

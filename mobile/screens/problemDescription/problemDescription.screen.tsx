@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { fontSizes } from "@/themes/app.constant";
 import { router } from "expo-router";
 import CustomButton from "@/components/common/CustomButton";
+import { useDiagnosisStore } from "@/store/diagnosisStore";
 
 const issues = [
   "Strange noise from engine",
@@ -31,6 +32,7 @@ const issues = [
 const ProblemDescriptionScreen = () => {
   const [selected, setSelected] = useState<string[]>([]);
   const [description, setDescription] = useState<string>("");
+  const setTextParam = useDiagnosisStore(state => state.setText);
 
   const toggleSelect = (item: string) => {
     if (selected.includes(item)) {
@@ -112,7 +114,11 @@ const ProblemDescriptionScreen = () => {
           />
           <CustomButton
             title="Continue"
-            onPress={() => router.push("/(routes)/audioRecording")}
+            onPress={() => {
+              const fullDescription = selected.join(', ') + ". " + description;
+              setTextParam(fullDescription);
+              router.push("/(routes)/audioRecording");
+            }}
           />
         </ScrollView>
       </KeyboardAvoidingView>

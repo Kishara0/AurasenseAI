@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
+  Alert,
+  ActivityIndicator
 } from "react-native";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,6 +17,7 @@ import { fontSizes } from "@/themes/app.constant";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/common/CustomButton";
 import { router } from "expo-router";
+import { useDiagnosisStore } from "@/store/diagnosisStore";
 
 const DATA = [
   {
@@ -35,6 +38,8 @@ const DATA = [
 ];
 
 const VisualEvidenceScreen = () => {
+  const { isAnalyzing, submitDiagnosis } = useDiagnosisStore();
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <BackButton />
@@ -99,11 +104,29 @@ const VisualEvidenceScreen = () => {
             </Pressable>
           </View>
         </View>
-         <CustomButton
+          {isAnalyzing ? (
+            <View style={{ alignItems: 'center', marginVertical: 20 }}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text>Our AI is analyzing your data...</Text>
+            </View>
+          ) : (
+            <CustomButton
               title="Generate Report"
-              onPress={() => router.push("/(routes)/diagnosticReport")}
+              onPress={async () => {
+                try {
+                   const data = await submitDiagnosis();
+                   if (data.status === 'complete') {
+                       router.push("/(routes)/diagnosticReport");
+                   } else {
+                       router.push("/(routes)/diagnosticChat");
+                   }
+                } catch(e) {
+                   Alert.alert("Diagnosis Error", "Could not reach the AI backend.");
+                }
+              }}
             />
-      </ScrollView>
+          )}
+        </ScrollView>
     </SafeAreaView>
   );
 };
