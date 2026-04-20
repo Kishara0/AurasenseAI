@@ -8,10 +8,11 @@ import {
   Pressable,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { moderateScale } from "react-native-size-matters";
+import { moderateScale, scale } from "react-native-size-matters";
 import { fontSizes } from "@/themes/app.constant";
 import { COLORS } from "@/constants/Colors";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -40,7 +41,6 @@ const AddVehicleScreen = () => {
   };
 
   const onSubmit = async () => {
-    console.log({ ...formData, make: selected });
     try {
       setLoading(true);
       const data = { ...formData, make: selected };
@@ -49,12 +49,9 @@ const AddVehicleScreen = () => {
         return;
       }
       await setAuthorizationHeader();
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_SERVER_URL}/car/addVehicle`,
-        {
-          data,
-        },
-      );
+      await axios.post(`${process.env.EXPO_PUBLIC_SERVER_URL}/car/addVehicle`, {
+        data,
+      });
 
       setFormData({
         make: "",
@@ -62,7 +59,7 @@ const AddVehicleScreen = () => {
         year: "",
         mileage: "",
       });
-      router.push("/(routes)/problemDescription")
+      router.push("/(routes)/problemDescription");
     } catch (error: any) {
       console.log(error?.response?.data || error.message);
       const message =
@@ -184,7 +181,28 @@ const AddVehicleScreen = () => {
               diagnostics and repair estimates.
             </Text>
           </View>
-          <CustomButton title="Continue" onPress={() => onSubmit()} />
+
+          <View>
+            {loading ? (
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#5A7DFF",
+                  paddingVertical: moderateScale(10),
+                  borderRadius: scale(30),
+                  width: "100%",
+                }}
+              >
+                <ActivityIndicator size="large" color={COLORS.white} />
+              </View>
+            ) : (
+              <CustomButton
+                title={"Continue"}
+                onPress={() => onSubmit()}
+              />
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
