@@ -8,19 +8,20 @@ const DiagnosisCard = ({ item, onPress }: DiagnosisCardProps) => {
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.image}>
         <Image
-          source={{ uri: item.image }}
+          source={{ uri:"https://cdn.pixabay.com/photo/2012/05/29/00/43/car-49278_1280.jpg" }}
           style={styles.imageInner}
           resizeMode="cover"
         />
       </View>
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.date}>{item.date}</Text>
+          <Text style={styles.title}>Model: {item.model}</Text>
+          <Text style={styles.date}>{item.year}</Text>
         </View>
 
-        <Text style={styles.title}>{item.vehicle}</Text>
+        <Text style={styles.subtitle}>Make: {item.make}</Text>
 
-        <Text style={styles.description}>{item.issue.substring(0, 50)}</Text>
+        <Text style={styles.description}>Mileage: {item.mileage}</Text>
       </View>
 
       <Ionicons
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
 
   topRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: moderateScale(4),
   },
@@ -89,6 +90,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: moderateScale(14),
     fontWeight: "700",
+    color: "#111827",
+    marginBottom: moderateScale(2),
+  },
+  subtitle: {
+    fontSize: moderateScale(14),
+    fontWeight: "400",
     color: "#111827",
     marginBottom: moderateScale(2),
   },

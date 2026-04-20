@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Cars {
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String             @db.ObjectId
+  user              User               @relation(fields: [userId], references: [id])
+  make              String
+  model             String
+  year              Float
+  mileage           Float
+  isDiagnostic      Boolean            @default(false)
+  diagnosticHistory DiagnosticHistory?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model DiagnosticHistory {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  carId               String   @unique @db.ObjectId
+  car                 Cars     @relation(fields: [carId], references: [id])
+  issue               Issues   @default(Moderate)
+  diagnosisConfidence Float    @default(0)
+  estimateCost        String
+  audio               Float    @default(0)
+  visual              Float    @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userName     String
+  email        String   @unique
+  password     String?
+  avatar       String?
+  provider     Provider
+  cars         Cars[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum Issues {
+  Critical
+  Moderate
+  Resolved
+}
+
+
+enum Provider {
+  Google
+  Local
+  Apple
+}

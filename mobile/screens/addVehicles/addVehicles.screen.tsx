@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   TextInput,
+  Alert,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,12 +17,14 @@ import { COLORS } from "@/constants/Colors";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import CustomButton from "@/components/common/CustomButton";
 import { router } from "expo-router";
-
-const options = ["Toyota", "Honda", "Ford"];
+import { options } from "@/configs/data";
+import { setAuthorizationHeader } from "@/hook/useUser";
+import axios from "axios";
 
 const AddVehicleScreen = () => {
   const [selected, setSelected] = useState("Toyota");
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<AddVehicleProps>({
     make: "",
     model: "",
@@ -35,12 +38,46 @@ const AddVehicleScreen = () => {
       [name]: value,
     }));
   };
+
+  const onSubmit = async () => {
+    console.log({ ...formData, make: selected });
+    try {
+      setLoading(true);
+      const data = { ...formData, make: selected };
+      if (!data.make || !data.mileage || !data.model || !data.year) {
+        Alert.alert("Error", "Please fill the all fields");
+        return;
+      }
+      await setAuthorizationHeader();
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_SERVER_URL}/car/addVehicle`,
+        {
+          data,
+        },
+      );
+
+      setFormData({
+        make: "",
+        model: "",
+        year: "",
+        mileage: "",
+      });
+      router.push("/(routes)/problemDescription")
+    } catch (error: any) {
+      console.log(error?.response?.data || error.message);
+      const message =
+        error?.response?.data?.message || error.message || "Failed";
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <SafeAreaView
       style={{
         flex: 1,
       }}
-      edges={["top"]}
+      edges={["left", "right", "bottom"]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -54,7 +91,7 @@ const AddVehicleScreen = () => {
           <View>
             <Text style={styles.title}>Tell us about your vehicle</Text>
             <Text style={styles.subtitle}>
-              We'll use this to provide accurate AI diagnostics.
+              {"We'll use this to provide accurate AI diagnostics."}
             </Text>
           </View>
 
@@ -147,7 +184,7 @@ const AddVehicleScreen = () => {
               diagnostics and repair estimates.
             </Text>
           </View>
-          <CustomButton title="Continue" onPress={()=>router.push("/(routes)/problemDescription")}/>
+          <CustomButton title="Continue" onPress={() => onSubmit()} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -160,7 +197,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: moderateScale(20),
     gap: moderateScale(5),
-    paddingBottom:moderateScale(20)
+    paddingVertical: moderateScale(20),
   },
   title: {
     fontSize: fontSizes.FONT30,

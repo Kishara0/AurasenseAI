@@ -5,38 +5,215 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  Pressable,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, scale } from "react-native-size-matters";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Entypo, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/Colors";
 import { fontSizes } from "@/themes/app.constant";
+import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
+import { setAuthorizationHeader, useUser } from "@/hook/useUser";
+import * as ImagePicker from "expo-image-picker";
+import { uploadImageToCloudinary } from "@/configs/uploadImageToCloudinary";
+import axios from "axios";
+import { useUserStore } from "@/store/useUserStore";
 
 const ProfileScreen = () => {
+  const { user } = useUser();
+  const updateAvatar = useUserStore((state) => state.updateAvatar);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [image, setImage] = useState<string | null>();
+  const logOutHandler = async () => {
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Yes",
+        style: "destructive",
+        onPress: async () => {
+          await SecureStore.deleteItemAsync("accessToken");
+          await SecureStore.deleteItemAsync("userName");
+          await SecureStore.deleteItemAsync("email");
+          await SecureStore.deleteItemAsync("avatar");
+          router.replace("/(routes)/signIn");
+        },
+      },
+    ]);
+  };
+
+  const pickImage = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        "Permission required",
+        "Permission to access the media library is required.",
+      );
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  const uploadImage = async () => {
+    try {
+      setLoading(true);
+      const cloudinary_URI = await uploadImageToCloudinary(
+        image || "",
+        "profile",
+      );
+      if (!cloudinary_URI) {
+        Alert.alert("Image Upload failed");
+        return;
+      }
+      await setAuthorizationHeader();
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_SERVER_URL}/auth/uploadImage`,
+        {
+          image: cloudinary_URI.cloudinary_URI,
+        },
+      );
+
+      console.log(response);
+      updateAvatar(response.data.avatar);
+
+      setImage("");
+    } catch (error: any) {
+      console.log(error?.response?.data || error.message);
+      const message =
+        error?.response?.data?.message || error.message || "Failed";
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const keepDefaultImage = async () => {
+    try {
+      setLoading(true);
+      const imageURI = `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.email}`;
+      await setAuthorizationHeader();
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_SERVER_URL}/auth/uploadImage`,
+        {
+          image: imageURI,
+        },
+      );
+      updateAvatar(response.data.avatar);
+
+      setImage("");
+    } catch (error: any) {
+      console.log(error?.response?.data || error.message);
+      const message =
+        error?.response?.data?.message || error.message || "Failed";
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isCloudinary = user?.avatar?.includes("https://res.cloudinary.com");
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* PROFILE HEADER */}
         <View style={styles.headerCenter}>
           <View style={styles.avatarWrapper}>
             <Image
               source={{
-                uri: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                uri: image ? image : user?.avatar?.replace("/svg", "/png"),
               }}
               style={styles.avatar}
             />
 
-            <View style={styles.editIcon}>
+            <Pressable style={styles.editIcon} onPress={pickImage}>
               <Ionicons name="pencil" size={scale(14)} color="#fff" />
-            </View>
+            </Pressable>
+          </View>
+          <View>
+            {image && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: moderateScale(10),
+                  marginTop: 10,
+                }}
+              >
+                <Pressable
+                  onPress={() => setImage("")}
+                  disabled={loading}
+                  style={[styles.saveImage, { backgroundColor: "red" }]}
+                >
+                  <Entypo name="trash" size={scale(16)} color="white" />
+                  <Text style={{ color: "white", fontWeight: "600" }}>
+                    Remove
+                  </Text>
+                </Pressable>
+                <Pressable
+                  disabled={loading}
+                  style={[styles.saveImage, { backgroundColor: "blue" }]}
+                  onPress={() => uploadImage()}
+                >
+                  {loading ? (
+                    <Text style={{ color: "white", fontWeight: "600" }}>
+                      Saving....
+                    </Text>
+                  ) : (
+                    <>
+                      <Entypo name="save" size={scale(16)} color="white" />
+                      <Text style={{ color: "white", fontWeight: "600" }}>
+                        Save
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            )}
+          </View>
+          <View>
+            {isCloudinary && (
+              <Pressable
+                onPress={keepDefaultImage}
+                disabled={loading}
+                style={[
+                  styles.saveImage,
+                  { backgroundColor: "green", marginTop: moderateScale(10) },
+                ]}
+              >
+                {loading ? (
+                  <Text style={{ color: "white", fontWeight: "600" }}>
+                    Changing image...
+                  </Text>
+                ) : (
+                  <Text style={{ color: "white", fontWeight: "600" }}>
+                    Keep default image
+                  </Text>
+                )}
+              </Pressable>
+            )}
           </View>
 
-          <Text style={styles.name}>Alex Fernando</Text>
-
+          <Text style={styles.name}>{user?.userName}</Text>
           <View style={styles.badge}>
             <Ionicons name="star" size={scale(14)} color="#B45309" />
             <Text style={styles.badgeText}>Pro Member</Text>
@@ -93,7 +270,7 @@ const ProfileScreen = () => {
           <Ionicons name="chevron-forward" size={scale(20)} color="#9CA3AF" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.logout}>
+        <TouchableOpacity style={styles.logout} onPress={() => logOutHandler()}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -224,7 +401,14 @@ const styles = StyleSheet.create({
     padding: moderateScale(13),
     borderRadius: moderateScale(16),
   },
+  saveImage: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: moderateScale(4),
+    padding: moderateScale(5),
 
+    borderRadius: moderateScale(10),
+  },
   logoutText: {
     color: COLORS.white,
     fontSize: fontSizes.FONT22,

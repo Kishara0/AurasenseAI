@@ -76,13 +76,13 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
           } as any);
       });
 
-      let backendUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3000/diagnose' : 'http://127.0.0.1:3000/diagnose';
+      let backendUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/agent/diagnose' : 'http://127.0.0.1:3000/api/agent/diagnose';
 
       // Use the actual IP of your machine dynamically from Expo if available
       const debuggerHost = Constants.expoConfig?.hostUri;
       if (debuggerHost) {
           const ip = debuggerHost.split(':')[0];
-          backendUrl = `http://${ip}:3000/diagnose`;
+          backendUrl = `http://${ip}:3000/api/agent/diagnose`;
       }
 
       const response = await fetch(backendUrl, {

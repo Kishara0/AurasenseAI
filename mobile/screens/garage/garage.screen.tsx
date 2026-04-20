@@ -4,6 +4,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,10 +12,17 @@ import { moderateScale } from "react-native-size-matters";
 import { COLORS } from "@/constants/Colors";
 import { fontSizes } from "@/themes/app.constant";
 import { SHADOWS } from "@/constants/Shadows";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useUserStore } from "@/store/useUserStore";
 
 const GarageScreen = () => {
+  const user = useUserStore((state) => state.user);
+
+  const transformScale = user?.avatar?.includes("https://api.dicebear.com/")
+    ? 1.8
+    : 1;
+
   return (
     <SafeAreaView
       style={{
@@ -29,10 +37,14 @@ const GarageScreen = () => {
           onPress={() => router.push("/(tab)/profile")}
           activeOpacity={0.8}
         >
-          <MaterialIcons
-            name="account-circle"
-            size={moderateScale(24)}
-            color={COLORS.black}
+          <Image
+            source={{ uri: user?.avatar?.replace("/svg", "/png") }}
+            style={{
+              width: moderateScale(30),
+              height: moderateScale(30),
+              borderRadius: moderateScale(20),
+              transform: [{ scale: transformScale }],
+            }}
           />
         </TouchableOpacity>
       </View>
@@ -52,7 +64,7 @@ const GarageScreen = () => {
           </Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={()=>router.push("/(routes)/addVehicles")}
+            onPress={() => router.push("/(routes)/addVehicles")}
           >
             <Text style={styles.addButtonText}>Add Vehicle</Text>
           </TouchableOpacity>
@@ -97,7 +109,6 @@ const styles = StyleSheet.create({
     color: COLORS.black,
   },
   profileButton: {
-    padding: 8,
     backgroundColor: COLORS.white,
     borderRadius: 20,
     ...SHADOWS.light,

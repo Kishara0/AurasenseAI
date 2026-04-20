@@ -68,7 +68,7 @@ const ProblemDescriptionScreen = () => {
             STEP 1 OF 4
           </Text>
 
-          <Text style={styles.title}>What's happening with your vehicle?</Text>
+          <Text style={styles.title}>{"What's happening with your vehicle?"}</Text>
 
           <View style={styles.chipContainer}>
             {issues.map((item) => {

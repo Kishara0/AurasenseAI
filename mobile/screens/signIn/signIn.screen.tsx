@@ -8,8 +8,10 @@ import {
   Image,
   TextInput,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { fontSizes } from "@/themes/app.constant";
 import { COLORS } from "@/constants/Colors";
@@ -18,19 +20,90 @@ import BackButton from "@/components/common/BackButton";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/common/CustomButton";
 import { router } from "expo-router";
+import { validateEmail } from "@/configs/validateEmail";
+import JWT from "expo-jwt";
+import { Provider } from "@/configs/enum";
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 const SignInScreen = () => {
   const [formData, setFormData] = useState<SignInPros>({
     email: "",
     password: "",
   });
-  const [isPasswordVisible, setIsPasswordVisible] = useState<Boolean>(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const onChangeHandler = (name: keyof SignUpPros, value: string) => {
+ /* const configureGoogleSignIn = () => {
+    if (Platform.OS === "ios") {
+      GoogleSignin.configure({
+        iosClientId: process.env.EXPO_PUBLIC_IOS_GOOGLE_API_KEY,
+      });
+    } else {
+      GoogleSignin.configure({
+        webClientId: "170013116158-d2a5aeu2u2ijftm1jhgkep8bm9riqe1f.apps.googleusercontent.com",
+      });
+      console.log("ENV", process.env.EXPO_PUBLIC_ANDROID_GOOGLE_API_KEY);
+    }
+  };
+  useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
+
+  const googleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      console.log(userInfo)
+    } catch (error: any) {
+      console.log("FULL ERROR:", JSON.stringify(error, null, 2));
+      Alert.alert("Error", error.message);
+    }
+  };*/
+
+  const onChangeHandler = (name: keyof SignInPros, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.email || !formData.password) {
+      Alert.alert("Error", "Please fill the all fields");
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      Alert.alert("Error", "Please enter a valid email");
+      return;
+    }
+    try {
+      setLoading(true);
+      const token = JWT.encode(
+        { ...formData, provider: Provider.Local },
+        process.env.EXPO_PUBLIC_JWT_SECRET_KEY as string,
+      );
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_SERVER_URL}/auth/signIn`,
+        { signToken: token },
+      );
+
+      await SecureStore.setItemAsync("accessToken", response.data.accessToken);
+      await SecureStore.setItemAsync("email", formData.email);
+      await SecureStore.setItemAsync(
+        "avatar",
+        `https://api.dicebear.com/7.x/adventurer/svg?seed=${formData.email}`,
+      );
+      router.push("/(routes)/subscription");
+    } catch (error: any) {
+      console.log(error?.response?.data || error.message);
+      const message =
+        error?.response?.data?.message || error.message || "Failed";
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,7 +157,10 @@ const SignInScreen = () => {
           </View>
 
           <View>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity
+              style={styles.socialButton}
+              //onPress={() => googleSignIn()}
+            >
               <Image
                 source={require("@/assets/others/google.png")}
                 style={{
@@ -139,10 +215,27 @@ const SignInScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-            <CustomButton
-              title={"Login account"}
-              onPress={() => router.push("/(routes)/subscription")}
-            />
+            <View>
+              {loading ? (
+                <View
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#5A7DFF",
+                    paddingVertical: moderateScale(10),
+                    borderRadius: scale(30),
+                    width: "100%",
+                  }}
+                >
+                  <ActivityIndicator size="large" color={COLORS.white} />
+                </View>
+              ) : (
+                <CustomButton
+                  title={"Login account"}
+                  onPress={() => handleSubmit()}
+                />
+              )}
+            </View>
           </View>
           <View
             style={{

@@ -124,3 +124,5 @@ export const StatusConfig = {
     icon: "alert-circle",
   },
 };
+
+export const options = ["Toyota", "Honda", "Ford"];

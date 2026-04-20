@@ -8,6 +8,8 @@ import {
   Image,
   TextInput,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,8 +19,12 @@ import { COLORS } from "@/constants/Colors";
 import { fontSizes } from "@/themes/app.constant";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/common/CustomButton";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
+import JWT from "expo-jwt";
 import { router } from "expo-router";
-
+import { Provider } from "@/configs/enum";
+import { validateEmail } from "@/configs/validateEmail";
 
 const SignUpScreen = () => {
   const [formData, setFormData] = useState<SignUpPros>({
@@ -26,8 +32,8 @@ const SignUpScreen = () => {
     userName: "",
     password: "",
   });
-  const [isPasswordVisible, setIsPasswordVisible] = useState<Boolean>(false);
-
+  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const onChangeHandler = (name: keyof SignUpPros, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -35,12 +41,53 @@ const SignUpScreen = () => {
     }));
   };
 
+  const handleSubmit = async () => {
+    if (!formData.userName || !formData.email || !formData.password) {
+      Alert.alert("Error", "Please fill the all fields");
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      Alert.alert("Error", "Please enter a valid email");
+      return;
+    }
+    try {
+      setLoading(true);
+      const token = JWT.encode(
+        { ...formData, provider: Provider.Local,avatar:`https://api.dicebear.com/7.x/adventurer/svg?seed=${formData.email}` },
+        process.env.EXPO_PUBLIC_JWT_SECRET_KEY as string,
+      );
+      console.log(token);
+      console.log(formData);
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_SERVER_URL}/auth/signUp`,
+        { signUpToken: token },
+      );
+
+      await SecureStore.setItemAsync("accessToken", response.data.accessToken);
+      await SecureStore.setItemAsync("userName", formData.userName);
+      await SecureStore.setItemAsync("email", formData.email);
+      await SecureStore.setItemAsync(
+        "avatar",
+        `https://api.dicebear.com/7.x/adventurer/svg?seed=${formData.email}`,
+      );
+      setLoading(false);
+      router.push("/(routes)/subscription");
+    } catch (error: any) {
+      console.log(error?.response?.data || error.message);
+      const message =
+        error?.response?.data?.message || error.message || "Failed";
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView
       style={{
         flex: 1,
       }}
-       edges={["top"]}
+      edges={["top"]}
     >
       <BackButton />
 
@@ -154,19 +201,38 @@ const SignUpScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-            <CustomButton title={"Create an account"} onPress={()=>router.push("/(routes)/subscription")}/>
+            <View>
+              {loading ? (
+                <View
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#5A7DFF",
+                    paddingVertical: moderateScale(10),
+                    borderRadius: scale(30),
+                    width: "100%",
+                  }}
+                >
+                  <ActivityIndicator size="large" color={COLORS.white} />
+                </View>
+              ) : (
+                <CustomButton
+                  title={"Create an account"}
+                  onPress={() => handleSubmit()}
+                />
+              )}
+            </View>
           </View>
           <View
             style={{
               flexDirection: "row",
               justifyContent: "center",
-             
             }}
           >
             <Text style={{ color: COLORS.textSecondary }}>
               Already have an account?{" "}
             </Text>
-            <TouchableOpacity onPress={() => router.push('/(routes)/signIn')}>
+            <TouchableOpacity onPress={() => router.push("/(routes)/signIn")}>
               <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
                 Log In
               </Text>

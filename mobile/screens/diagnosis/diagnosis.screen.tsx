@@ -4,8 +4,10 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Alert,
+  RefreshControl,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale } from "react-native-size-matters";
 import { fontSizes } from "@/themes/app.constant";
@@ -15,8 +17,41 @@ import DiagnosisCard from "@/components/common/DiagnosisCard";
 import { diagnosisData } from "@/configs/data";
 import { router } from "expo-router";
 import DiagnosisScreenSkelton from "@/components/common/DiagnosisScreenSkelton";
+import { setAuthorizationHeader } from "@/hook/useUser";
+import axios from "axios";
 
 const DiagnosisScreen = () => {
+  const [cars, setCars] = useState<CarsProps[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchCars = async () => {
+    try {
+      setLoading(true);
+      await setAuthorizationHeader();
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_SERVER_URL}/car/getVehicles`,
+      );
+      setCars(response.data.cars);
+    } catch (error: any) {
+      console.log(error?.response?.data || error.message);
+      const message =
+        error?.response?.data?.message || error.message || "Failed";
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCars();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchCars();
+    setRefreshing(false);
+  };
   return (
     <SafeAreaView
       style={{
@@ -31,6 +66,12 @@ const DiagnosisScreen = () => {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    />
+  }
       >
         <View style={styles.addVehicleCard}>
           <View style={styles.iconContainer}>
@@ -60,11 +101,31 @@ const DiagnosisScreen = () => {
           >
             Select your vehicles to diagnosis
           </Text>
-          <DiagnosisScreenSkelton />
-          <DiagnosisScreenSkelton />
-          {diagnosisData.map((item) => (
-            <DiagnosisCard key={item.id} item={item} onPress={()=>router.push("/(routes)/problemDescription")}/>
-          ))}
+
+          {loading ? (
+            <>
+              <DiagnosisScreenSkelton />
+              <DiagnosisScreenSkelton />
+            </>
+          ) : cars && cars.length > 0 ? (
+            cars.map((item) => (
+              <DiagnosisCard
+                key={item.id}
+                item={item}
+                onPress={() => router.push("/(routes)/problemDescription")}
+              />
+            ))
+          ) : (
+            <Text
+              style={{
+                textAlign: "center",
+                fontSize: fontSizes.FONT21,
+                marginTop: moderateScale(10),
+              }}
+            >
+              No Cars Add yet
+            </Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
